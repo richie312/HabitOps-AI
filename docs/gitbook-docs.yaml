@@ -1,3 +1,11 @@
-﻿root: .
-structure:
-  summary: SUMMARY.md
+﻿$schema: https://api.gitbook.com/gitbook-docs.yaml
+site:
+  title: HabitOps AI
+  structure:
+    - type: space
+      key: habitops-docs
+      title: HabitOps AI Documentation
+      path: docs
+      default: true
+      content:
+        directory: ./
