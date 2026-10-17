@@ -1,8 +1,12 @@
 import logging
+from pathlib import Path
 
+from dotenv import load_dotenv
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from werkzeug.exceptions import BadRequest, HTTPException
+
+load_dotenv(Path(__file__).resolve().parents[1] / ".env", override=False)
 
 from .config import Config
 from .db import DatabaseError, close_db

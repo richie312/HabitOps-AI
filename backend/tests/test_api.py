@@ -1,9 +1,13 @@
-from unittest.mock import patch
+from datetime import timedelta
+from unittest.mock import Mock, patch
 
 import pytest
 
 from app import create_app
 from app.config import Config
+from app.db import DatabaseError
+from app.services import ActivityService
+from app.repositories import ActivityRepository
 
 
 class TestConfig(Config):
@@ -71,3 +75,41 @@ def test_analytics(service, client):
 
 def test_sync_status(client):
     assert client.get("/api/sync/status").json["data"]["pending"] == 0
+
+
+@patch("app.services.get_store")
+def test_analytics_passes_requested_date_window(get_store):
+    repository = Mock()
+    repository.list.return_value = []
+    get_store.return_value.list_records.return_value = []
+
+    result = ActivityService(repository).analytics("Walking", 7)
+
+    assert result["activity"] == "Walking"
+    assert result["time_range"] == 7
+    _, start, end = repository.list.call_args.args
+    assert end - start == timedelta(days=7)
+
+
+@patch("app.services.get_store")
+def test_list_uses_synced_local_cache_when_mysql_is_unavailable(get_store):
+    repository = Mock()
+    repository.list.side_effect = DatabaseError("offline")
+    cached = [{"id": 9, "local_id": "local-9", "sync_state": "synced", "activity_type": "Cycling"}]
+    get_store.return_value.list_records.return_value = cached
+
+    assert ActivityService(repository).list({"type": "Cycling"}) == cached
+
+
+@patch("app.repositories.execute")
+def test_activity_list_includes_gps_route_points(execute):
+    activity_row = {"id": 7, "activity_type": "Running"}
+    route_row = {"activity_id": 7, "latitude": 12.97, "longitude": 77.59, "recorded_at": "2026-10-16T10:00:00Z", "accuracy": 5}
+    execute.side_effect = [
+        Mock(fetchall=Mock(return_value=[activity_row])),
+        Mock(fetchall=Mock(return_value=[route_row])),
+    ]
+
+    result = ActivityRepository().list("Running")
+
+    assert result[0]["route"] == [{"latitude": 12.97, "longitude": 77.59, "recorded_at": "2026-10-16T10:00:00Z", "accuracy": 5}]

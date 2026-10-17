@@ -116,6 +116,11 @@ For the current laptop-hosted Flask development setup, you can also forward the 
 & $adb reverse tcp:5000 tcp:5000
 ```
 
+Debug builds call `http://localhost:5000/api` through this reverse. Standalone release
+builds use the embedded Flask service at `http://localhost:8765/api` instead.
+The emulator and physical-device debug workflow therefore need the port-5000 reverse
+while the laptop Flask server is running.
+
 The second command allows the phone to reach the laptop's port 5000 through ADB reverse forwarding. It is a development convenience, not a requirement for the eventual standalone APK.
 
 Check the configured forwarding:

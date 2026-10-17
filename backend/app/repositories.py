@@ -23,7 +23,20 @@ class ActivityRepository:
         if start: clauses.append("start_at >= %s"); parameters.append(start)
         if end: clauses.append("start_at <= %s"); parameters.append(end)
         where = " WHERE " + " AND ".join(clauses) if clauses else ""
-        return rows(execute(f"SELECT {ACTIVITY_COLUMNS} FROM activities{where} ORDER BY start_at DESC", tuple(parameters)))
+        activities = rows(execute(f"SELECT {ACTIVITY_COLUMNS} FROM activities{where} ORDER BY start_at DESC", tuple(parameters)))
+        if activities:
+            identifiers = [item["id"] for item in activities]
+            placeholders = ",".join(["%s"] * len(identifiers))
+            route_points = rows(execute(
+                f"SELECT activity_id,latitude,longitude,recorded_at,accuracy FROM activity_route_points WHERE activity_id IN ({placeholders}) ORDER BY activity_id,sequence_number",
+                tuple(identifiers),
+            ))
+            routes = {identifier: [] for identifier in identifiers}
+            for point in route_points:
+                routes[point.pop("activity_id")].append(point)
+            for activity in activities:
+                activity["route"] = routes[activity["id"]]
+        return activities
 
     def get(self, identifier):
         activity = row(execute(f"SELECT {ACTIVITY_COLUMNS} FROM activities WHERE id = %s", (identifier,)))

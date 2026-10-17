@@ -9,7 +9,7 @@ class DatabaseError(Exception):
 def get_db():
     if "db" not in g:
         try:
-            g.db = mysql.connector.connect(**current_app.config["DATABASE_CONFIG"]())
+            g.db = mysql.connector.connect(**current_app.config["DATABASE_CONFIG"](), use_pure=True)
         except (mysql.connector.Error, RuntimeError) as error:
             current_app.logger.error("Database connection failed")
             raise DatabaseError("Database operation failed") from error
